@@ -21,5 +21,5 @@ dim(de)
 write.table(de, "results/all-DE.stats.txt", quote = FALSE, sep = "\t",
             row.names = FALSE, col.names = TRUE)
 
-# write out all DE ids
+# write out id of all differentially expressed contigs
 write(x = unique(sort(de$cds)), "results/all-DE.id.txt")

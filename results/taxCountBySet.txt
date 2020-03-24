@@ -1,0 +1,27 @@
+set	Taxonomy	Count
+1	Annelida	1
+1	Arthropoda	1
+1	Bacteria	1
+1	Chordata	1
+1	Evosea	1
+1	Fungi	93
+1	Tardigrada	1
+1	Viridiplantae	1633
+2	Bacteria	2
+2	Fungi	14
+2	Viridiplantae	1266
+2	Viruses	1
+3	Arthropoda	2
+3	Bacteria	1
+3	Fungi	345
+3	Viridiplantae	1329
+3	Viruses	1
+4	Fungi	5
+4	marine metagenome	1
+4	Viridiplantae	2513
+5	Fungi	31
+5	Viridiplantae	48
+6	Bacteria	1
+6	Viridiplantae	56
+7	Viridiplantae	91
+8	Viridiplantae	489

@@ -48,14 +48,27 @@ str(cd_vs_wiq.go)
 goCount <- cd_vs_wiq.go  %>% group_by(set, GOslim_term, taxonomy) %>% 
   summarise(count = n())
 
-# Calculate the sum of go term counts by set
-goCountSum <- goCount %>% group_by(set) %>% summarise(sum = sum(count))
+# Separate by plant and fungi
+goCount_plants <- goCount %>% filter(taxonomy == "Viridiplantae")
 
-goCount <- merge(goCount, goCountSum, by.x = "set", by.y = "set")
+goCount_fungi <- goCount %>% filter(taxonomy == "Fungi")
+
+# Calculate the sum of go term counts by set
+goCount_plants_sum <- goCount_plants %>% group_by(set) %>% summarise(sum = sum(count))
+
+goCount_fungi_sum <- goCount_fungi %>% group_by(set) %>% summarise(sum = sum(count))
+
+goCount_plants <- merge(goCount_plants, goCount_plants_sum, by.x = "set", by.y = "set")
+
+goCount_fungi <- merge(goCount_fungi, goCount_fungi_sum, by.x = "set", by.y = "set")
+
 
 # Normalize go term counts
-goCount <- goCount %>% mutate(perc = count / sum * 100) %>% 
-  select(-count, -sum)
+goCount_plants <- goCount_plants %>% mutate(perc = count / sum * 100) %>% 
+  select(-taxonomy, -count, -sum)
+
+goCount_fungi <- goCount_fungi %>% mutate(perc = count / sum * 100) %>% 
+  select(-taxonomy, -count, -sum)
 
 
 # Set heatmap color
@@ -84,12 +97,10 @@ makeHM <- function(data, filename) {
 # Make heatmap for GOslim terms in set 1/2 for plant and fungi separately
 
 # Select GOslim terms from set 1 and 2 from Viridiplantae
-goTerms_set_1_2_plants <- goCount %>% filter(set == 1 | set == 2) %>%
-  filter(taxonomy == "Viridiplantae") %>% select(-taxonomy)
-
 # Reformat data to be feed into heatmap.2
 # One term per row, two columns from normalize count from two sets
-goTerms_set_1_2_plants <- goTerms_set_1_2_plants %>%
+goTerms_set_1_2_plants <- goCount_plants %>%
+  filter(set == 1 | set == 2) %>%
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
               values_fill = list(perc = 0)) %>%
   column_to_rownames("GOslim_term")
@@ -97,10 +108,8 @@ goTerms_set_1_2_plants <- goTerms_set_1_2_plants %>%
 makeHM(goTerms_set_1_2_plants, "go_set12_plant_heatmap.24Mar")
 
 # Set 1/2 Fungi
-goTerms_set_1_2_fungi <- goCount %>% filter(set == 1 | set == 2) %>% 
-  filter(taxonomy == "Fungi") %>% select(-taxonomy) 
-
-goTerms_set_1_2_fungi <- goTerms_set_1_2_fungi %>% 
+goTerms_set_1_2_fungi <- goCount_fungi %>% 
+  filter(set == 1 | set == 2) %>% 
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
               values_fill = list(perc = 0)) %>% 
   column_to_rownames("GOslim_term")
@@ -109,10 +118,8 @@ makeHM(goTerms_set_1_2_fungi, "go_set12_fungi_heatmap.24Mar")
 
 
 # Make heatmap for GOslim terms in set 3/4 for plant and fungi separately
-goTerms_set_3_4_plants <- goCount %>% filter(set == 3 | set == 4) %>% 
-  filter(taxonomy == "Viridiplantae") %>% select(-taxonomy) 
-
-goTerms_set_3_4_plants <- goTerms_set_3_4_plants %>% 
+goTerms_set_3_4_plants <- goCount_plants %>% 
+  filter(set == 3 | set == 4) %>% 
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
               values_fill = list(perc = 0)) %>% 
   column_to_rownames("GOslim_term")
@@ -120,10 +127,8 @@ goTerms_set_3_4_plants <- goTerms_set_3_4_plants %>%
 makeHM(goTerms_set_3_4_plants, "go_set34_plant_heatmap.24Mar")
 
 # Set 3/4 Fungi
-goTerms_set_3_4_fungi <- goCount %>% filter(set == 3 | set == 4) %>% 
-  filter(taxonomy == "Fungi") %>% select(-taxonomy) 
-
-goTerms_set_3_4_fungi <- goTerms_set_3_4_fungi %>% 
+goTerms_set_3_4_fungi <- goCount_fungi %>% 
+  filter(set == 3 | set == 4) %>% 
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
               values_fill = list(perc = 0)) %>% 
   column_to_rownames("GOslim_term")
@@ -133,11 +138,8 @@ makeHM(goTerms_set_3_4_fungi, "go_set34_fungi_heatmap.24Mar")
 
 # Make heatmap for GOslim terms in set 5 to 8 for plant 
 # There are no Fungi gene found in set 6-8, so only 1 heatmap for plant
-
-goTerms_set_5_8_plants <- goCount %>% filter(set >= 5 & set <= 8) %>%
-  filter(taxonomy == "Viridiplantae") %>% select(-taxonomy) 
-
-goTerms_set_5_8_plants <- goTerms_set_5_8_plants %>%
+goTerms_set_5_8_plants <- goCount_plants %>%
+  filter(set >= 5 & set <= 8) %>%
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
               values_fill = list(perc = 0)) %>% 
   column_to_rownames("GOslim_term")

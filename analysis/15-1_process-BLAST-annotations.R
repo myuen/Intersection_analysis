@@ -86,7 +86,8 @@ colnames(rl) <- c("tax_id", "tax_name", "species", "genus",
 
 
 # Only keep those that are found in our BLAST results
-uniqTaxIDs <- merge(uniqTaxIDs, rl, by.x = "new_tax_id", by.y = "tax_id", all.x = TRUE)
+uniqTaxIDs <- merge(uniqTaxIDs, rl, 
+                    by.x = "new_tax_id", by.y = "tax_id", all.x = TRUE)
 
 table(is.na(uniqTaxIDs$tax_name))
 # FALSE 

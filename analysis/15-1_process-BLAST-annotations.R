@@ -28,6 +28,7 @@ topBlastHit <- blast %>% group_by(qseqid) %>% nest()
 topBlastHit$data <- map(topBlastHit$data, function(x) {
   # Extract UniProt ID from sseqid
   x[1, "sseqid"] <- str_split(x[1 ,"sseqid"], "\\|") %>% unlist() %>% nth(2)
+
   # Extract tax id from description
   x[1, "tax_id"] <- str_split(x[1 ,"salltitles"], "=") %>% unlist %>% nth(3) %>% 
     str_replace(" GN", "") %>% str_replace(" PE", "")
@@ -42,9 +43,9 @@ str(topBlastHit)
 # Classes ‘grouped_df’, ‘tbl_df’, ‘tbl’ and 'data.frame':	9714 obs. of  5 variables:
 
 
-# Let's extract all unique organism name
-uniqTaxIDs <- data.frame("tax_id" = as.integer(unique(sort(topBlastHit$tax_id))))
-str(uniqTaxIDs)
+# Let's extract all unique organism name from all top blast hit
+unique.TaxIDs <- data.frame("tax_id" = as.integer(unique(sort(topBlastHit$tax_id))))
+str(unique.TaxIDs)
 # 'data.frame':	510 obs. of  1 variable:
 
 
@@ -62,15 +63,16 @@ mergedTaxIDs <- mergedTaxIDs %>% select(1,3)
 
 colnames(mergedTaxIDs) <- c("old_tax_id", "new_tax_id")
 
-table(uniqTaxIDs$tax_id %in% mergedTaxIDs$old_tax_id)
+# There are indeed obsolete taxonomy ID
+table(unique.TaxIDs$tax_id %in% mergedTaxIDs$old_tax_id)
 # FALSE  TRUE 
 #   508     2 
 
-uniqTaxIDs <- merge(uniqTaxIDs, mergedTaxIDs, 
+unique.TaxIDs <- merge(unique.TaxIDs, mergedTaxIDs, 
                     by.x = "tax_id", by.y = "old_tax_id", all.x = TRUE)
 
-uniqTaxIDs[is.na(uniqTaxIDs$new_tax_id), "new_tax_id"] <- 
-  uniqTaxIDs[is.na(uniqTaxIDs$new_tax_id), "tax_id"]
+unique.TaxIDs[is.na(unique.TaxIDs$new_tax_id), "new_tax_id"] <- 
+  unique.TaxIDs[is.na(unique.TaxIDs$new_tax_id), "tax_id"]
 
 
 # Read ranked lineage from NCBI tax id
@@ -86,37 +88,39 @@ colnames(rl) <- c("tax_id", "tax_name", "species", "genus",
 
 
 # Only keep those that are found in our BLAST results
-uniqTaxIDs <- merge(uniqTaxIDs, rl, 
+unique.TaxIDs <- merge(unique.TaxIDs, rl, 
                     by.x = "new_tax_id", by.y = "tax_id", all.x = TRUE)
 
-table(is.na(uniqTaxIDs$tax_name))
+table(is.na(unique.TaxIDs$tax_name))
 # FALSE 
 #   510 
+
 
 # Set taxonomy if it belongs to Bacteria or Viruses.
 # Drill deeper if it belongs Eukaryota and report if it 
 # belongs to Fungi or Viridiplantae.  Report the class for 
 # all other case.
 
-uniqTaxIDs$taxonomy <-
+unique.TaxIDs$taxonomy <-
   case_when(
-    uniqTaxIDs$superkingdom == "Bacteria" | uniqTaxIDs$superkingdom == "Viruses" ~ 
-      uniqTaxIDs$superkingdom, 
-    uniqTaxIDs$kingdom == "Fungi" | uniqTaxIDs$kingdom == "Viridiplantae" ~
-      uniqTaxIDs$kingdom,
-    uniqTaxIDs$phylum != "" ~ uniqTaxIDs$phylum
+    unique.TaxIDs$superkingdom == "Bacteria" | unique.TaxIDs$superkingdom == "Viruses" ~ 
+      unique.TaxIDs$superkingdom, 
+    unique.TaxIDs$kingdom == "Fungi" | unique.TaxIDs$kingdom == "Viridiplantae" ~
+      unique.TaxIDs$kingdom,
+    unique.TaxIDs$phylum != "" ~ unique.TaxIDs$phylum
 )
 
 
 # For those don't have class name, replace with taxonomy name
-uniqTaxIDs[is.na(uniqTaxIDs$taxonomy), "taxonomy"] <- 
-  uniqTaxIDs[is.na(uniqTaxIDs$taxonomy), "tax_name"]
-str(uniqTaxIDs)
+unique.TaxIDs[is.na(unique.TaxIDs$taxonomy), "taxonomy"] <- 
+  unique.TaxIDs[is.na(unique.TaxIDs$taxonomy), "tax_name"]
+str(unique.TaxIDs)
 # 'data.frame':	510 obs. of  12 variables:
  
 
-topBlastHit <- left_join(topBlastHit, uniqTaxIDs) %>% 
+topBlastHit <- left_join(topBlastHit, unique.TaxIDs) %>% 
   select(qseqid, sseqid, evalue, salltitles, tax_id, taxonomy)
+
 
 write.table(topBlastHit, "results/all-DE.blastpUniProt.topHit.txt",
             sep = "\t", quote = FALSE, row.names = FALSE)

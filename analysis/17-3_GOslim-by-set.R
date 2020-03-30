@@ -4,7 +4,6 @@ library(tibble)
 library(tidyr)
 library(RColorBrewer)
 
-
 # Read set analysis
 cd_vs_wiq <- read.delim("results/cd_vs_wiq.txt", sep = "\t", 
                         header = TRUE, stringsAsFactors = FALSE)
@@ -20,55 +19,52 @@ table(cd_vs_wiq$set)
 # Read top BLAST hit and taxonomy lineage
 topBlastHit <- read.delim("results/all-DE.blastpUniProt.topHit.txt", sep = "\t",
                           header = TRUE, stringsAsFactors = FALSE)
-topBlastHit <- topBlastHit %>% select(qseqid, taxonomy)
+topBlastHit <- topBlastHit %>% select(qseqid, sseqid, taxonomy)
+colnames(topBlastHit) <- c("cds", "UniProtKB.AC", "Taxonomy")
 str(topBlastHit)
-# 'data.frame':	9714 obs. of  2 variables:
+# 'data.frame':	9714 obs. of  3 variables:
 
-cd_vs_wiq.tax <- merge(cd_vs_wiq, topBlastHit, by.x = "cds", by.y = "qseqid")
-str(cd_vs_wiq.tax)
-# 'data.frame':	7928 obs. of  3 variables:
+
 # Some sequence don't have annotation, hence size not the same as cd_vs_wiq
+cd_vs_wiq.tax <- merge(cd_vs_wiq, topBlastHit)
+str(cd_vs_wiq.tax)
+# 'data.frame':	7928 obs. of  4 variables:
 
 
-# Read top GOslim annotations
-topTairGo <- read.delim("results/all-DE.blastpTAIR.topHit.txt", sep = "\t", 
-                        header = TRUE, stringsAsFactors = FALSE)
-topTairGo <- topTairGo %>% select(qseqid, GOslim_term)
-str(topTairGo)
-# 'data.frame':	18655 obs. of  2 variables:
+# Read UniProt Accession to GO Terms mapping
+uId_2_goTerm <- read.delim("results/uId_2_goTerm.txt", sep = "\t", 
+                           header = TRUE, stringsAsFactors = FALSE)
+str(uId_2_goTerm)
+# 'data.frame':	2446 obs. of  3 variables:
 
-cd_vs_wiq.go <- merge(cd_vs_wiq.tax, topTairGo, by.x = "cds", by.y = "qseqid")
+
+cd_vs_wiq.go <- merge(cd_vs_wiq.tax, uId_2_goTerm, 
+                      by.x = "UniProtKB.AC", by.y = "UniProtKB.AC")
 str(cd_vs_wiq.go)
-# 'data.frame':	15309 obs. of  4 variables:
-# Some sequence have more than 1 go term, hence size not the 
-# same as cd_vs_wiq.tax
+# 'data.frame':	2824 obs. of  6 variables:
 
 
-# Summarize taxonomy count
-goCount <- cd_vs_wiq.go  %>% group_by(set, GOslim_term, taxonomy) %>% 
-  summarise(count = n())
+# Summarize GO term count
+goCount <- cd_vs_wiq.go  %>% group_by(set, TERM, Taxonomy) %>% 
+  summarise(count = n()) %>% 
+  filter(Taxonomy == "Viridiplantae" | Taxonomy == "Fungi")
+str(goCount)
+# Classes ‘grouped_df’, ‘tbl_df’, ‘tbl’ and 'data.frame':	935 obs. of  4 variables:
 
-# Separate by plant and fungi
-goCount_plants <- goCount %>% filter(taxonomy == "Viridiplantae")
 
-goCount_fungi <- goCount %>% filter(taxonomy == "Fungi")
+goCountSum <- goCount %>% group_by(set, Taxonomy) %>% 
+  summarise(sum = sum(count))
 
-# Calculate the sum of go term counts by set
-goCount_plants_sum <- goCount_plants %>% group_by(set) %>% summarise(sum = sum(count))
 
-goCount_fungi_sum <- goCount_fungi %>% group_by(set) %>% summarise(sum = sum(count))
-
-goCount_plants <- merge(goCount_plants, goCount_plants_sum, by.x = "set", by.y = "set")
-
-goCount_fungi <- merge(goCount_fungi, goCount_fungi_sum, by.x = "set", by.y = "set")
+goCount <- inner_join(goCount, goCountSum)
+# Joining, by = c("set", "Taxonomy")
+str(goCount)
+# Classes ‘grouped_df’, ‘tbl_df’, ‘tbl’ and 'data.frame':	935 obs. of  5 variables:
 
 
 # Normalize go term counts
-goCount_plants <- goCount_plants %>% mutate(perc = count / sum * 100) %>% 
-  select(-taxonomy, -count, -sum)
-
-goCount_fungi <- goCount_fungi %>% mutate(perc = count / sum * 100) %>% 
-  select(-taxonomy, -count, -sum)
+goCount <- goCount %>% mutate(perc = count / sum * 100) %>%
+  select(-count, -sum)
 
 
 # Set heatmap color
@@ -78,70 +74,102 @@ makeHM <- function(data, filename) {
   svg(file = paste0("results/figures/", filename, ".svg"),
       width = 12, height = 12,
       pointsize = 16, family = "helvetica")
-
+  
   heatmap.2(
-    as.matrix(data), Colv = NA, 
-    scale = "row", dendrogram = c("row"), trace = c("none"),
+    as.matrix(data), 
+    Colv = NA, 
+    scale = "row", 
+    dendrogram = c("row"), 
+    trace = c("none"),
     col = coul,
-    # density.info = c("none"),
-    keysize = 1, # Legend size
-    cexRow = 0.75, cexCol = 0.85, # Row and Column label size
+    # cexRow = 0.75, cexCol = 1, # Row and Column label size
+    cexRow = 0.1, cexCol = 1, # Row and Column label size
     srtCol = 45, # Col label angle
-    margins = c(5, 20)
+    margins = c(3, 20),
+    keysize = 1, # Legend size
+    density.info = c("none"),
+    lhei = c(0.5, 3),
+    lwid = c(1, 4)
   )
   
   dev.off()
 }
 
 
-# Make heatmap for GOslim terms in set 1/2 for plant and fungi separately
-
-# Select GOslim terms from set 1 and 2 from Viridiplantae
+# Select GO terms from set 1 and 2 from Viridiplantae
 # Reformat data to be feed into heatmap.2
 # One term per row, two columns from normalize count from two sets
-goTerms_set_1_2_plants <- goCount_plants %>%
-  filter(set == 1 | set == 2) %>%
+goTerms_set_1_2_plants <- goCount %>%
+  filter(Taxonomy == "Viridiplantae" & (set == 1 | set == 2)) %>%
+  select(-Taxonomy) %>%
+  pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
+              values_fill = list(perc = 0)) %>% column_to_rownames("TERM")
+
+# Create a sum column for the percentage of set 1 and 2
+# goTerms_set_1_2_plants <- goTerms_set_1_2_plants %>% 
+#   mutate(sum = set1 + set2)
+
+# Select the top 50 categories for heatmap
+# goTerms_set_1_2_plants <- tbl_df(goTerms_set_1_2_plants) %>%
+#   top_n(50) %>% 
+#   select(-sum) %>%
+#   column_to_rownames("TERM")
+# Selecting by sum
+
+# write.table(goTerms_set_1_2_plants, "results/goTerms_set_1_2_plants.txt", 
+#             quote = FALSE, sep = "\t")
+
+makeHM(goTerms_set_1_2_plants, "go_set12_plant_heatmap.30Mar")
+
+
+# Repeat for GO terms from set 3/4
+goTerms_set_3_4_plants <- goCount %>%
+  filter(Taxonomy == "Viridiplantae" & (set == 3 | set == 4)) %>%
+  select(-Taxonomy) %>%
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
               values_fill = list(perc = 0)) %>%
-  column_to_rownames("GOslim_term")
+  column_to_rownames("TERM")
 
-makeHM(goTerms_set_1_2_plants, "go_set12_plant_heatmap.24Mar")
+# Create a sum column for the percentage of set 1 and 2
+# goTerms_set_3_4_plants <- goTerms_set_3_4_plants %>% 
+#   mutate(sum = set3 + set4)
 
-# Set 1/2 Fungi
-goTerms_set_1_2_fungi <- goCount_fungi %>% 
-  filter(set == 1 | set == 2) %>% 
+# Select the top 50 categories for heatmap
+# goTerms_set_3_4_plants <- tbl_df(goTerms_set_3_4_plants) %>%
+#   top_n(50) %>% 
+#   select(-sum) %>%
+#   column_to_rownames("TERM")
+# Selecting by sum
+
+# write.table(goTerms_set_3_4_plants, "results/goTerms_set_3_4_plants.txt", 
+#             quote = FALSE, sep = "\t")
+
+makeHM(goTerms_set_3_4_plants, "go_set34_plant_heatmap.30Mar")
+
+
+# Repeat for GO terms from set 5-8
+goTerms_set_5_8_plants <- goCount %>%
+  filter(Taxonomy == "Viridiplantae" & (set >= 5 & set <= 8)) %>%
+  select(-Taxonomy) %>% 
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
-              values_fill = list(perc = 0)) %>% 
-  column_to_rownames("GOslim_term")
+              values_fill = list(perc = 0)) %>%
+  column_to_rownames("TERM")
 
-makeHM(goTerms_set_1_2_fungi, "go_set12_fungi_heatmap.24Mar")
+# write.table(goTerms_set_5_8_plants, "results/goTerms_set_5_8_plants.txt", 
+#             quote = FALSE, sep = "\t")
+
+makeHM(goTerms_set_5_8_plants, "go_set58_plant_heatmap.30Mar")
 
 
-# Make heatmap for GOslim terms in set 3/4 for plant and fungi separately
-goTerms_set_3_4_plants <- goCount_plants %>% 
-  filter(set == 3 | set == 4) %>% 
+# Make a heatmap for GOslim terms for all sets for fungi
+goTerms_all_sets_fungi <- goCount %>%
+  filter(Taxonomy == "Fungi") %>%
+  select(-Taxonomy) %>%
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
-              values_fill = list(perc = 0)) %>% 
-  column_to_rownames("GOslim_term")
+              values_fill = list(perc = 0)) %>%
+  column_to_rownames("TERM")
 
-makeHM(goTerms_set_3_4_plants, "go_set34_plant_heatmap.24Mar")
+# write.table(goTerms_all_sets_fungi, "results/goTerms_all_sets_fungi.txt", 
+#             quote = FALSE, sep = "\t")
 
-# Set 3/4 Fungi
-goTerms_set_3_4_fungi <- goCount_fungi %>% 
-  filter(set == 3 | set == 4) %>% 
-  pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
-              values_fill = list(perc = 0)) %>% 
-  column_to_rownames("GOslim_term")
-
-makeHM(goTerms_set_3_4_fungi, "go_set34_fungi_heatmap.24Mar")
-
-
-# Make heatmap for GOslim terms in set 5 to 8 for plant 
-# There are no Fungi gene found in set 6-8, so only 1 heatmap for plant
-goTerms_set_5_8_plants <- goCount_plants %>%
-  filter(set >= 5 & set <= 8) %>%
-  pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
-              values_fill = list(perc = 0)) %>% 
-  column_to_rownames("GOslim_term")
-
-makeHM(goTerms_set_5_8_plants, "go_set58_plant_heatmap.24Mar")
+makeHM(goTerms_all_sets_fungi, "go_all_sets_fungi_heatmap.30Mar")

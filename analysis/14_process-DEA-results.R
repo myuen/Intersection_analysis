@@ -18,8 +18,8 @@ dim(de)
 # [1] 17507     9
 
 # write out DE results
-write.table(de, "results/all-DE.stats.txt", quote = FALSE, sep = "\t",
+write.table(de, "results/sigDE.stats.txt", quote = FALSE, sep = "\t",
             row.names = FALSE, col.names = TRUE)
 
 # write out id of all differentially expressed contigs
-write(x = unique(sort(de$cds)), "results/all-DE.id.txt")
+# write(x = unique(sort(de$cds)), "results/sigDE.ctgId.txt")

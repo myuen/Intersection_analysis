@@ -4,6 +4,7 @@ library(tibble)
 library(tidyr)
 library(RColorBrewer)
 
+
 # Read set analysis
 cd_vs_wiq <- read.delim("results/cd_vs_wiq.txt", sep = "\t", 
                         header = TRUE, stringsAsFactors = FALSE)
@@ -11,41 +12,24 @@ cd_vs_wiq <- cd_vs_wiq %>% select(cds, set)
 str(cd_vs_wiq)
 # 'data.frame':	9298 obs. of  2 variables:
 
-table(cd_vs_wiq$set)
-#    1    2    3    4    5    6    7    8 
-# 2065 1514 1855 2975   85   69  104  631 
+
+# Read GO Terms
+goTerms <- read.delim("results/blastHitGoTerms.txt", sep = "\t",
+                      header = TRUE, stringsAsFactors = FALSE)
+str(goTerms)
+# 'data.frame':	3662 obs. of  5 variables:
 
 
-# Read top BLAST hit and taxonomy lineage
-topBlastHit <- read.delim("results/all-DE.blastpUniProt.topHit.txt", sep = "\t",
-                          header = TRUE, stringsAsFactors = FALSE)
-topBlastHit <- topBlastHit %>% select(qseqid, sseqid, taxonomy)
-colnames(topBlastHit) <- c("cds", "UniProtKB.AC", "Taxonomy")
-str(topBlastHit)
-# 'data.frame':	9714 obs. of  3 variables:
-
-
-# Some sequence don't have annotation, hence size not the same as cd_vs_wiq
-cd_vs_wiq.tax <- merge(cd_vs_wiq, topBlastHit)
-str(cd_vs_wiq.tax)
-# 'data.frame':	7928 obs. of  4 variables:
-
-
-# Read UniProt Accession to GO Terms mapping
-uId_2_goTerm <- read.delim("results/uId_2_goTerm.txt", sep = "\t", 
-                           header = TRUE, stringsAsFactors = FALSE)
-str(uId_2_goTerm)
-# 'data.frame':	2446 obs. of  3 variables:
-
-
-cd_vs_wiq.go <- merge(cd_vs_wiq.tax, uId_2_goTerm, 
-                      by.x = "UniProtKB.AC", by.y = "UniProtKB.AC")
-str(cd_vs_wiq.go)
+cd_vs_wiq.tax.go <- inner_join(cd_vs_wiq, goTerms)
+str(cd_vs_wiq.tax.go)
 # 'data.frame':	2824 obs. of  6 variables:
+
+write.table(cd_vs_wiq.tax.go, "results/cd_vs_wiq.go.txt", sep = "\t", 
+            row.names = FALSE, col.names = TRUE, quote = FALSE)
 
 
 # Summarize GO term count
-goCount <- cd_vs_wiq.go  %>% group_by(set, TERM, Taxonomy) %>% 
+goCount <- cd_vs_wiq.tax.go  %>% group_by(set, TERM, Taxonomy) %>% 
   summarise(count = n()) %>% 
   filter(Taxonomy == "Viridiplantae" | Taxonomy == "Fungi")
 str(goCount)
@@ -103,18 +87,8 @@ goTerms_set_1_2_plants <- goCount %>%
   filter(Taxonomy == "Viridiplantae" & (set == 1 | set == 2)) %>%
   select(-Taxonomy) %>%
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
-              values_fill = list(perc = 0)) %>% column_to_rownames("TERM")
-
-# Create a sum column for the percentage of set 1 and 2
-# goTerms_set_1_2_plants <- goTerms_set_1_2_plants %>% 
-#   mutate(sum = set1 + set2)
-
-# Select the top 50 categories for heatmap
-# goTerms_set_1_2_plants <- tbl_df(goTerms_set_1_2_plants) %>%
-#   top_n(50) %>% 
-#   select(-sum) %>%
-#   column_to_rownames("TERM")
-# Selecting by sum
+              values_fill = list(perc = 0)) %>% 
+  column_to_rownames("TERM")
 
 # write.table(goTerms_set_1_2_plants, "results/goTerms_set_1_2_plants.txt", 
 #             quote = FALSE, sep = "\t")
@@ -129,17 +103,6 @@ goTerms_set_3_4_plants <- goCount %>%
   pivot_wider(names_from = set, values_from = perc, names_prefix = "set",
               values_fill = list(perc = 0)) %>%
   column_to_rownames("TERM")
-
-# Create a sum column for the percentage of set 1 and 2
-# goTerms_set_3_4_plants <- goTerms_set_3_4_plants %>% 
-#   mutate(sum = set3 + set4)
-
-# Select the top 50 categories for heatmap
-# goTerms_set_3_4_plants <- tbl_df(goTerms_set_3_4_plants) %>%
-#   top_n(50) %>% 
-#   select(-sum) %>%
-#   column_to_rownames("TERM")
-# Selecting by sum
 
 # write.table(goTerms_set_3_4_plants, "results/goTerms_set_3_4_plants.txt", 
 #             quote = FALSE, sep = "\t")

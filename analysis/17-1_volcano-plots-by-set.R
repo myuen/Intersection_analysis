@@ -2,7 +2,7 @@ library(dplyr)
 library(stringr)
 library(tidyr)
 
-source("analysis/99_make-volcano-plot.R")
+source("analysis/helper04_make-volcano-plot.R")
 
 # abs(logFC) log fold change cut-off.  Anything greater 
 # than (-1 x lfc) and less than lfc will be deemed 
@@ -17,6 +17,7 @@ pCutoff <- 0.05
 # Get all the statistic results from DE analysis
 allStats <- read.delim("results/stats-results.long.22Feb.tsv", header = TRUE, 
                        row.names = NULL, stringsAsFactors = FALSE)
+
 allStats <- allStats %>% select(-contig, -AveExpr, -t, -P.Value, -B) %>%
   filter(focus_term == "constDiff" | focus_term == "weevilInd_Q903")
 

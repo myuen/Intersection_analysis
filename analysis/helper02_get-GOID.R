@@ -11,8 +11,8 @@ library(stringr)
 # 2. UniProtKB-ID
 # 7. GO
 
-# Extract subject IDs (i.e. UniProt Accession) from BLAST results.
-# grep lines with these IDs on command line
+# Extract UniProt Accessions from BLAST results.
+# grep lines from idmapping_selected.tab with these IDs on command line
 uId_2_goId <- 
   read.csv('data/uniqueUniProtId2goId.txt', sep = "\t", 
            header = FALSE, stringsAsFactors = FALSE, 

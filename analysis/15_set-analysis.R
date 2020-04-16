@@ -9,9 +9,9 @@ lfcCutoff <- 2
 pCutoff <- 0.05
 
 
-# Read all differential expression statistics
-de <- read.table("results/stats-results.wide.22Feb.tsv", 
-                 header = TRUE, stringsAsFactors = FALSE , 
+# Read differential expression statistics
+de <- read.table("results/stats-results.wide.22Feb.tsv",
+                 header = TRUE, stringsAsFactors = FALSE ,
                  colClasses = c(rep("character", 2), rep("numeric", 14)))
 
 de <- de %>% rownames_to_column("cds")

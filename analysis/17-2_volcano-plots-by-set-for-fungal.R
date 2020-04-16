@@ -2,7 +2,7 @@ library(dplyr)
 library(stringr)
 library(tidyr)
 
-source("analysis/99_make-volcano-plot.R")
+source("analysis/helper04_make-volcano-plot.R")
 
 # abs(logFC) log fold change cut-off.  Anything greater 
 # than (-1 x lfc) and less than lfc will be deemed 
@@ -17,9 +17,12 @@ pCutoff <- 0.05
 # Read top BLAST hit and taxonomy lineage
 topBlastHit <- read.delim("results/all-DE.blastpUniProt.topHit.txt", sep = "\t",
                           header = TRUE, stringsAsFactors = FALSE)
+
 fungalCtgIds <- topBlastHit %>% filter(taxonomy == "Fungi") %>%
   select(qseqid)
+
 fungalCtgIds <- as.character(fungalCtgIds$qseqid)
+
 length(fungalCtgIds)
 # [1] 1363
 
@@ -27,6 +30,7 @@ length(fungalCtgIds)
 # Get all the statistic results from DE analysis
 allStats <- read.delim("results/stats-results.long.22Feb.tsv", header = TRUE, 
                        row.names = NULL, stringsAsFactors = FALSE)
+
 allStats <- allStats %>% select(-contig, -AveExpr, -t, -P.Value, -B) %>%
   filter(focus_term == "constDiff" | focus_term == "weevilInd_Q903") %>%
   filter(cds %in% fungalCtgIds)

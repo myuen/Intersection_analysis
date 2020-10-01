@@ -1,6 +1,6 @@
 library(dplyr)
 
-# Read taxonomy lineage file downloaded from NCBI
+# Download taxonomy lineage file from NCBI.
 # It's a database dump delimited by a pipe "|" and each 
 # value is delimited by tab on both ends.
 # ftp.ncbi.nlm.nih.gov/pub/taxonomy/new_taxdump/
@@ -49,7 +49,7 @@ getLineage <- function(x) {
   # belongs to Fungi or Viridiplantae.  Report the class for 
   # all other case.
   
-  df$taxonomy <-
+  df$Taxonomy <-
     case_when(
       df$superkingdom == "Bacteria" | df$superkingdom == "Viruses" ~ 
         df$superkingdom, 
@@ -59,8 +59,8 @@ getLineage <- function(x) {
     )
   
   # For those don't have class name, replace with taxonomy name
-  df[is.na(df$taxonomy), "taxonomy"] <- 
-    df[is.na(df$taxonomy), "tax_name"]
+  df[is.na(df$Taxonomy), "Taxonomy"] <- 
+    df[is.na(df$Taxonomy), "tax_name"]
   
   return(df)
 }

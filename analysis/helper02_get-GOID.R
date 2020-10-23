@@ -2,7 +2,6 @@ library(dplyr)
 library(purrr)
 library(stringr)
 
-
 # Get UniProt to GO term mapping file from EMBL
 # ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/idmapping/
 
@@ -11,8 +10,6 @@ library(stringr)
 # 2. UniProtKB-ID
 # 7. GO
 
-# Extract UniProt Accessions from BLAST results.
-# grep lines from idmapping_selected.tab with these IDs on command line
 uId_2_goId <- 
   read.csv('data/uniqueUniProtId2goId.txt', sep = "\t", 
            header = FALSE, stringsAsFactors = FALSE, 
@@ -20,15 +17,15 @@ uId_2_goId <-
 
 colnames(uId_2_goId) <- c("UniProtKB.AC", "UniProtKB.ID", "GO")
 
-getGOID <- function(x) {
-  uId_2_goId <- subset(uId_2_goId, uId_2_goId$UniProtKB.AC %in% x) %>%
-  dplyr::select(-UniProtKB.ID)
 
-  # Split the GOID delimited by ';' into separate rows
-  uId_2_goId <- map_dfr(uId_2_goId$UniProtKB.AC, function(x){
-    goIds <- uId_2_goId %>% filter(UniProtKB.AC == x) %>% str_split(";")
-    
-    data.frame("UniProtKB.AC" = x, "GOID" = str_trim(unlist(goIds[[2]])))
-  }
-  )
+# Function takes a single or a vector UniProtKB.AC
+getGOID <- function(x) {
+  
+  # Remove unused column
+  uId_2_goId <- uId_2_goId %>% 
+    dplyr::select(-UniProtKB.ID)
+  
+  uId_2_goId.subset <- uId_2_goId[uId_2_goId$UniProtKB.AC %in% x,]
+  
+  return (uId_2_goId.subset)
 }

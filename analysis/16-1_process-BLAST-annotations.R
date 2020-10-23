@@ -78,5 +78,6 @@ topBlastHit <- left_join(topBlastHit, uniq.TaxIDs)
 str(topBlastHit)
 # 'data.frame':	9298 obs. of  11 variables:
 
+# Table S2
 write.table(topBlastHit, "results/all-DE.blastpUniProt.topHit.txt",
             sep = "\t", quote = FALSE, row.names = FALSE)

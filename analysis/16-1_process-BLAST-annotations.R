@@ -5,13 +5,6 @@ library(tidyr)
 
 source("analysis/helper01_getLineage.R")
 
-# Read cd_vs_wiq set results
-cd_vs_wiq <- read.table("results/cd_vs_wiq.txt", 
-                        header = TRUE, stringsAsFactors = FALSE)
-
-str(cd_vs_wiq)
-# 'data.frame':	9298 obs. of  6 variables:
-
 
 # BLAST results output on tab-delimited format (i.e. run with -outfmt '6' option
 # on comamnd line BLAST).  We ran with 5 max target hits returned per query
@@ -34,7 +27,7 @@ topBlastHit <- blast %>% group_by(qseqid) %>% nest()
 topBlastHit$data <- map(topBlastHit$data, function(x) {
   # Extract UniProt ID from sseqid
   x[1, "sseqid"] <- str_split(x[1 ,"sseqid"], "\\|") %>% unlist() %>% nth(2)
-
+  
   # Extract tax id from description
   x[1, "tax_id"] <- str_split(x[1 ,"salltitles"], "=") %>% unlist %>% nth(3) %>% 
     str_replace(" GN", "") %>% str_replace(" PE", "")
@@ -46,10 +39,19 @@ topBlastHit <- topBlastHit %>% unnest(c(data))
 topBlastHit$tax_id <- as.integer(topBlastHit$tax_id)
 
 # Renamed column for better readability
-colnames(topBlastHit) <- c("cds", "UniProtKB.AC", "evalue", "Description", "tax_id")
+colnames(topBlastHit) <- 
+  c("cds", "UniProtKB.AC", "evalue", "Description", "tax_id")
 
 str(topBlastHit)
 # tibble [9,714 × 5] (S3: grouped_df/tbl_df/tbl/data.frame)
+
+
+# Read cd_vs_wiq set analysis results
+cd_vs_wiq <- read.table("results/cd_vs_wiq.txt", 
+                        header = TRUE, stringsAsFactors = FALSE)
+
+str(cd_vs_wiq)
+# 'data.frame':	9298 obs. of  6 variables:
 
 
 # We have BLASTed more sequences than needed.  Only keeping those we need for

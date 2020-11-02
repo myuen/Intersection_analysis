@@ -107,8 +107,9 @@ set1.ge <-
 set1.ge$p.value <- as.numeric(set1.ge$p.value)
 set1.ge <- set1.ge[set1.ge$p.value <= 0.01,]
 str(set1.ge)
-# 'data.frame':	0 obs. of  6 variables:
+# 'data.frame':	2 obs. of  6 variables:
 
+set1.ge$set <- 1
 
 # We are now comparing what terms are enriched in Set 2 against Set 1
 # Subset data and sorted by logFC.constDiff 
@@ -151,6 +152,8 @@ set2.ge$p.value <- as.numeric(set2.ge$p.value)
 set2.ge <- set2.ge[set2.ge$p.value <= 0.01,]
 str(set2.ge)
 # 'data.frame':	2 obs. of  6 variables:
+
+set2.ge$set <- 2
 
 
 # Repeat analysis for set3 against set4
@@ -210,6 +213,8 @@ set3.ge <- set3.ge[set3.ge$p.value <= 0.01,]
 str(set3.ge)
 # 'data.frame':	16 obs. of  6 variables:
 
+set3.ge$set <- 3
+
 
 # Set 4
 table(downRegGenes(set34.nnv))
@@ -250,3 +255,13 @@ set4.ge$p.value <- as.numeric(set4.ge$p.value)
 set4.ge <- set4.ge[set4.ge$p.value <= 0.01,]
 str(set4.ge)
 # 'data.frame':	21 obs. of  6 variables:
+
+set4.ge$set <- 4
+
+enrichedGO <- rbind(set1.ge, set2.ge, set3.ge, set4.ge)
+
+enrichedGO <- enrichedGO %>% dplyr::select(-Annotated, -Significant, -Expected)
+
+write.table(enrichedGO, "results/enriched_go_terms.txt",
+            sep = "\t", quote = FALSE, 
+            col.names = TRUE, row.names = FALSE)
